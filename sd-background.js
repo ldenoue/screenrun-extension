@@ -35,7 +35,20 @@ let startTime = 0;
 //let audioStream = null;
 let audioTrack = null;
 
-
+function sendToScreenRun(url) {
+  let m = JSON.stringify(mouseEvents)
+  let code = 'localStorage.setItem("screenrunext.webm", "' + url + '");localStorage.setItem("screenrunext.txt", \'' + m + '\');'
+  chrome.tabs.create({
+    active: false,
+    url: 'http://localhost:8080/studio?ext=1'
+}, function(tab) {
+    chrome.tabs.executeScript(tab.id, {
+        code: code
+    }, function() {
+        //chrome.tabs.remove(tab.id);
+    });
+});
+}
 function downloadScreenDrop(url) {
   chrome.storage.local.get('keepLastOnly',(res) => {
     let filename = '';
@@ -57,7 +70,6 @@ async function startScreenDrop() {
   if (mediaRecorder) {
     stream.getTracks().forEach((t) => t.stop());
     mediaRecorder.stop();
-    console.log(mouseEvents)
     return;
   }
   try {
@@ -101,7 +113,8 @@ async function startScreenDrop() {
         let fr = new FileReader();
         fr.onload = (e) => {
           let url = fr.result;
-          downloadScreenDrop(url);
+          //downloadScreenDrop(url);
+          sendToScreenRun(url)
         }
         fr.readAsDataURL(blob)
       };
