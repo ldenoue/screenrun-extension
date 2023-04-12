@@ -5,7 +5,16 @@
   "version": "1.0.4",
   "description": "Quickly record a video of your tab with your voice and clicks and import into ScreenRun.app",
   "background": {"scripts": ["sd-background.js"] },
-  "permissions": ["downloads", "downloads.open", "storage", "tabs", "tabCapture", "http://*/*","https://*/*"],
+  "content_scripts": [
+    {
+      "matches": ["http://localhost:8080/studio", "https://screenrun.app/studio"],
+      "js": ["fetch.js"],
+      "all_frames": false,
+      "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources" : ["fetch.js"],
+  "permissions": ["downloads", "downloads.open", "storage", "tabs", "tabCapture", "file://*/*", "http://*/*", "https://*/*"],
   "browser_action": {
 		"default_title": "ScreenRun",
   	"default_icon": "icons/off.png"

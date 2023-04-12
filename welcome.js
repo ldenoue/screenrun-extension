@@ -10,12 +10,12 @@ document.getElementById('mic').addEventListener('click',async (evt) => {
   }
 });
 
-let keep = document.getElementById('keep');
+/*let keep = document.getElementById('keep');
 chrome.storage.local.get('keepLastOnly',(res) => keep.checked = res.keepLastOnly === true);
 keep.addEventListener('change', (res) => {
   let keepLastOnly = res.target.checked;
   chrome.storage.local.set({keepLastOnly});
-});
+});*/
 
 function bytesToSize(bytes) {
   var sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
@@ -74,9 +74,9 @@ function createItem(file) {
   return item;
 }
 
-async function showFiles(files) {
+/*async function showFiles(files) {
   let myfiles_div = document.getElementById('myfiles');
-  files = files.filter(file => file.byExtensionName === 'ScreenRun' /*&& file.exists*/);
+  files = files.filter(file => file.byExtensionName === 'ScreenRun' );
   for (let file of files)
   {
     let item = createItem(file);
@@ -86,4 +86,4 @@ async function showFiles(files) {
 
 chrome.downloads.search({orderBy:['-startTime']}, (res) => {
   showFiles(res);
-})
+})*/

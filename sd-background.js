@@ -1,6 +1,20 @@
+let debug = true
 let mouseEvents = []
+let recordingTimer = null
+let stream = null;
+let mediaRecorder = null;
+let startTime = null;
+//let audioStream = null;
+let audioTrack = null;
+let lastUrl = null
+
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-  if (mediaRecorder) {
+  if (request.type === 'fetch') {
+    sendResponse({lastUrl,mouseEvents})
+    lastUrl = null
+    mouseEvents = []
+  }
+  else if (startTime) {
     let event = request
     event.ts = Date.now() - startTime
     mouseEvents.push(event)
@@ -25,30 +39,20 @@ chrome.browserAction.onClicked.addListener(function(tab) {
   /*chrome.tabCapture.getMediaStreamId({consumerTabId: tab.id}, (streamId) => {
     startScreenDrop(streamId);
   })*/
-  chrome.tabs.executeScript(tab.id, {file: "inject.js", allFrames: true});
-  startScreenDrop();
+  startScreenDrop(tab.id);
 });
-
-let stream = null;
-let mediaRecorder = null;
-let startTime = 0;
-//let audioStream = null;
-let audioTrack = null;
 
 function sendToScreenRun(url) {
-  let m = JSON.stringify(mouseEvents)
-  let code = 'localStorage.setItem("screenrunext.webm", "' + url + '");localStorage.setItem("screenrunext.txt", \'' + m + '\');'
+  lastUrl = url
+
   chrome.tabs.create({
-    active: false,
-    url: 'http://localhost:8080/studio?ext=1'
-}, function(tab) {
-    chrome.tabs.executeScript(tab.id, {
-        code: code
-    }, function() {
-        //chrome.tabs.remove(tab.id);
-    });
-});
+    active: true,
+    url: debug ? 'http://localhost:8080/studio' : 'https://screenrun.app/studio'
+  }, function(tab) {
+    //chrome.tabs.executeScript(tab.id, {file: "fetch.js", allFrames: false})
+  })
 }
+
 function downloadScreenDrop(url) {
   chrome.storage.local.get('keepLastOnly',(res) => {
     let filename = '';
@@ -66,12 +70,21 @@ function downloadScreenDrop(url) {
   });
 }
 
-async function startScreenDrop() {
+let iconOn = false
+function flash() {
+  iconOn = !iconOn
+  chrome.browserAction.setIcon({path: iconOn ? 'icons/on.png' : 'icons/off.png'});
+}
+async function startScreenDrop(tabid) {
   if (mediaRecorder) {
+    clearInterval(recordingTimer)
+    chrome.browserAction.setIcon({path: 'icons/off.png'});
     stream.getTracks().forEach((t) => t.stop());
     mediaRecorder.stop();
     return;
   }
+
+  chrome.tabs.executeScript(tabid, {file: "inject.js", allFrames: false});
   try {
     let audioStream = await navigator.mediaDevices.getUserMedia({audio:true});
     audioTrack = audioStream.getAudioTracks()[0];
@@ -91,6 +104,8 @@ async function startScreenDrop() {
       }
     })*/
     chrome.tabCapture.capture({video:true},(str) => {
+      recordingTimer = setInterval(flash,1000)
+
       stream = str
       if (audioTrack)
         stream.addTrack(audioTrack);
@@ -99,14 +114,14 @@ async function startScreenDrop() {
         startScreenDrop();
       };
       let chunks = [];
-      startTime = Date.now()
       mouseEvents = []
       mediaRecorder = new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp8,opus'});
       mediaRecorder.ondataavailable = (e) => {
         chunks.push(e.data);
       }
       mediaRecorder.onstop = function(e) {
-        chrome.browserAction.setIcon({path: 'icons/off.png'});
+        startTime = null
+        //chrome.browserAction.setIcon({path: 'icons/off.png'});
         mediaRecorder = null;
         let blob = new Blob(chunks, { 'type' : 'video/webm' });
         chunks = [];
@@ -119,10 +134,13 @@ async function startScreenDrop() {
         fr.readAsDataURL(blob)
       };
       mediaRecorder.start(1000);
-      chrome.browserAction.setIcon({path: 'icons/on.png'});
+      startTime = Date.now()
+      //chrome.browserAction.setIcon({path: 'icons/on.png'});
     });
   } catch (epermission) {
     console.log('cancelled',epermission)
+    clearInterval(recordingTimer)
+    chrome.browserAction.setIcon({path: 'icons/off.png'});
     return;
   }
 }
