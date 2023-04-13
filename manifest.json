@@ -11,7 +11,14 @@
       "js": ["fetch.js"],
       "all_frames": false,
       "run_at": "document_end"
+    },
+    {
+      "matches": ["file://*/*", "http://*/*", "https://*/*"],
+      "js": ["inject.js"],
+      "all_frames": false,
+      "run_at": "document_end"
     }
+
   ],
   "web_accessible_resources" : ["fetch.js"],
   "permissions": ["downloads", "downloads.open", "storage", "tabs", "tabCapture", "file://*/*", "http://*/*", "https://*/*"],
@@ -21,6 +28,8 @@
 	},
   "options_page": "welcome.html",
   "icons": {
-    "128": "icons/off.png"
+    "16": "icons/off.png",
+    "128": "icons/off.png",
+    "48": "icons/off.png"
   }
 }

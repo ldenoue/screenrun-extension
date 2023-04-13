@@ -1,4 +1,5 @@
 let debug = true
+let screenRunStudioLink = debug ? 'http://localhost:8080/studio' : 'https://screenrun.app/studio'
 let mouseEvents = []
 let recordingTimer = null
 let stream = null;
@@ -37,7 +38,7 @@ chrome.runtime.onInstalled.addListener((details) => {
 chrome.browserAction.onClicked.addListener(function(tab) {
   //console.log(tab)
   /*chrome.tabCapture.getMediaStreamId({consumerTabId: tab.id}, (streamId) => {
-    startScreenDrop(streamId);
+    startScreenDrop(tab.id,streamId);
   })*/
   startScreenDrop(tab.id);
 });
@@ -45,11 +46,20 @@ chrome.browserAction.onClicked.addListener(function(tab) {
 function sendToScreenRun(url) {
   lastUrl = url
 
-  chrome.tabs.create({
-    active: true,
-    url: debug ? 'http://localhost:8080/studio' : 'https://screenrun.app/studio'
-  }, function(tab) {
-    //chrome.tabs.executeScript(tab.id, {file: "fetch.js", allFrames: false})
+  downloadScreenDrop(url)
+  chrome.tabs.query({url:screenRunStudioLink}, (t) => {
+    if (t && t.length > 0) {
+      let tabId = t[0].id
+      chrome.tabs.update(tabId, {highlighted: true});
+      const code = `const evt = new CustomEvent('getScreenRunVideo');document.dispatchEvent(evt);`
+      setTimeout(() => chrome.tabs.executeScript(tabId, {code: code}), 2000);
+    } else {
+      chrome.tabs.create({
+        active: true,
+        url: screenRunStudioLink
+      }, function(tab) {
+      })
+    }
   })
 }
 
@@ -84,7 +94,7 @@ async function startScreenDrop(tabid) {
     return;
   }
 
-  chrome.tabs.executeScript(tabid, {file: "inject.js", allFrames: false});
+  //chrome.tabs.executeScript(tabid, {file: "inject.js", allFrames: false});
   try {
     let audioStream = await navigator.mediaDevices.getUserMedia({audio:true});
     audioTrack = audioStream.getAudioTracks()[0];
@@ -103,36 +113,55 @@ async function startScreenDrop(tabid) {
           }
       }
     })*/
-    chrome.tabCapture.capture({video:true},(str) => {
+    const constraints = {
+      audio: false,
+      video: true,
+      videoConstraints: {
+          mandatory: {
+              chromeMediaSource: "tab",
+              minFrameRate: 4,
+              maxFrameRate: 60,
+              maxWidth: 3840,
+              maxHeight: 2160,
+              minWidth: 200,
+              minHeight: 200,
+          }
+      }
+  };
+    chrome.tabCapture.capture(constraints, (str) => {
+      //navigator.mediaDevices.getDisplayMedia({video:{streamId: { exact: streamId}}},(str) => {
       recordingTimer = setInterval(flash,1000)
 
       stream = str
       if (audioTrack)
         stream.addTrack(audioTrack);
     
-      stream.getVideoTracks()[0].onended = function () {
-        startScreenDrop();
-      };
+      //stream.getVideoTracks()[0].onended = function () {
+        stream.getTracks().forEach((t) => {
+          t.onended = () => {
+            console.log('stream ended')
+            startScreenDrop();
+          }
+      });
       let chunks = [];
       mouseEvents = []
-      mediaRecorder = new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp8,opus'});
+      mediaRecorder = new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp8,vp9,opus'});
       mediaRecorder.ondataavailable = (e) => {
         chunks.push(e.data);
       }
       mediaRecorder.onstop = function(e) {
         startTime = null
-        //chrome.browserAction.setIcon({path: 'icons/off.png'});
         mediaRecorder = null;
         let blob = new Blob(chunks, { 'type' : 'video/webm' });
         chunks = [];
         let fr = new FileReader();
         fr.onload = (e) => {
           let url = fr.result;
-          //downloadScreenDrop(url);
           sendToScreenRun(url)
         }
         fr.readAsDataURL(blob)
       };
+      chunks = []
       mediaRecorder.start(1000);
       startTime = Date.now()
       //chrome.browserAction.setIcon({path: 'icons/on.png'});

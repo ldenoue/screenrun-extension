@@ -74,11 +74,12 @@ function createItem(file) {
   return item;
 }
 
-/*async function showFiles(files) {
+async function showFiles(files) {
   let myfiles_div = document.getElementById('myfiles');
-  files = files.filter(file => file.byExtensionName === 'ScreenRun' );
+  files = files.filter(file => file.byExtensionName === 'ScreenRun' && file.exists);
   for (let file of files)
   {
+
     let item = createItem(file);
     myfiles_div.appendChild(item)
   }
@@ -86,4 +87,4 @@ function createItem(file) {
 
 chrome.downloads.search({orderBy:['-startTime']}, (res) => {
   showFiles(res);
-})*/
+})
