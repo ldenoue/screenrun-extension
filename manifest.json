@@ -21,7 +21,7 @@
 
   ],
   "web_accessible_resources" : ["fetch.js"],
-  "permissions": ["downloads", "downloads.open", "storage", "tabs", "tabCapture", "file://*/*", "http://*/*", "https://*/*"],
+  "permissions": ["downloads", "downloads.open", "storage", "tabs", "tabCapture"],
   "browser_action": {
 		"default_title": "ScreenRun",
   	"default_icon": "icons/off.png"

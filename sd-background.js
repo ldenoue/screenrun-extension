@@ -1,4 +1,4 @@
-let debug = true
+let debug = false
 let screenRunStudioLink = debug ? 'http://localhost:8080/studio' : 'https://screenrun.app/studio'
 let mouseEvents = []
 let recordingTimer = null
@@ -12,8 +12,8 @@ let lastUrl = null
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   if (request.type === 'fetch') {
     sendResponse({lastUrl,mouseEvents})
-    lastUrl = null
-    mouseEvents = []
+    //lastUrl = null
+    //mouseEvents = []
   }
   else if (startTime) {
     let event = request
@@ -35,11 +35,13 @@ chrome.runtime.onInstalled.addListener((details) => {
   })
 })
 
+let width = 1920;
+let height = 1080;
+
 chrome.browserAction.onClicked.addListener(function(tab) {
-  //console.log(tab)
-  /*chrome.tabCapture.getMediaStreamId({consumerTabId: tab.id}, (streamId) => {
-    startScreenDrop(tab.id,streamId);
-  })*/
+  width = tab.width
+  height = tab.height
+  //console.log('tab dimentions=',width,height)
   startScreenDrop(tab.id);
 });
 
@@ -113,18 +115,19 @@ async function startScreenDrop(tabid) {
           }
       }
     })*/
+    //console.log('recording at width/height',width,height)
     const constraints = {
       audio: false,
       video: true,
       videoConstraints: {
           mandatory: {
               chromeMediaSource: "tab",
-              minFrameRate: 4,
+              minFrameRate: 30,
               maxFrameRate: 60,
-              maxWidth: 3840,
-              maxHeight: 2160,
-              minWidth: 200,
-              minHeight: 200,
+              maxWidth: width,
+              maxHeight: height,
+              minWidth: width,
+              minHeight: height,
           }
       }
   };
